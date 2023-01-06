@@ -124,7 +124,7 @@ def _callART(genome_file, output_file, read_length, fold_coverage=1):
     '''
     os.chdir(os.path.join(getScriptPath(), "ART"))
     subprocess.call(["./art_illumina", \
-                     "-sam", \
+                     "-na", \
                      "-i", genome_file, \
                      "-p", \
                      "-m", "200", \
