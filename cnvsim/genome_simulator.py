@@ -122,8 +122,8 @@ def _callART(genome_file, output_file, read_length, fold_coverage=1):
     :param fold_coverage: fold coverage for the reads
     :return: None
     '''
-    os.chdir(os.path.join(getScriptPath(), "ART"))
-    subprocess.call(["./art_illumina", \
+    art_path = os.path.join(getScriptPath(), "ART", 'art_illumina')
+    subprocess.call([art_path, \
                      "-na", \
                      "-i", genome_file, \
                      "-p", \
