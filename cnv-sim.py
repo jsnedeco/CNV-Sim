@@ -6,7 +6,7 @@ import os.path
 import datetime
 import argparse
 import shutil
-from patlib import Path
+from pathlib import Path
 
 from cnvsim.fileio import *
 from cnvsim.genome_simulator import *
@@ -39,7 +39,7 @@ def main():
                         help="total number of reads without variations")
     parser.add_argument("-l", "--read_length", type=int, default=100, \
                         help="read length (bp)")
-    parser.add_argument("--cnv_list", type=file, required=True, \
+    parser.add_argument("--cnv_list", type=Path, required=True, \
                         help="path to a CNV list file in BED format chr | start | end | variation.")
     parser.add_argument("--coverage", type=int, default=1, \
                         help="the integer average depth of coverage of a genome for the reads (only on whole genome simulation)")
