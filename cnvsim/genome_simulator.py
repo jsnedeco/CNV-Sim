@@ -2,16 +2,18 @@ __author__ = 'Abdelrahman Hosny'
 
 import random
 import os
+import shlex
 import subprocess
 import datetime
 import shutil
+from Bio import SeqIO
+from collections import namedtuple
 
 from . import fileio
+import logging
+logger = logging.getLogger(__name__)
 
-
-def _log(message):
-    print '[CNV SIM {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()) + "] " + message
-
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 
 def getScriptPath():
     return os.path.dirname(os.path.realpath(__file__))
@@ -53,65 +55,32 @@ def _generateCNVMask(mask_length, p_amplify, p_delete, min_variation, max_variat
     return cnv_mask
 
 
-def _generateCNVList(chromosome_length, number_of_regions, p_amplify, p_delete, min_variation, max_variation, region_min_length, region_max_length):
-    '''
-    This function generates a CNV list to be used for simulating the CNVs in the next step
-    :param chromosome_length: the length of the simulated chromosome
-    :param number_of_regions: the number of regions to be affected by CNVs
-    :param p_amplify: percentage of amplification
-    :param p_delete: percentage of deletions
-    :param min_variation: minimum level of variation
-    :param max_variation: maximum level of variation
-    :param region_min_length: minimum length of a CNV region
-    :param region_max_length: maximum length of a CNV region
-    :return: CNV list
-    '''
-    region_length = chromosome_length / number_of_regions
-    start = 0
-    end = region_length
-    cnv_list = []
-    mask = _generateCNVMask(number_of_regions, p_amplify, p_delete, min_variation, max_variation)
-    for i in range(number_of_regions):
-        # jump forward start
-        jump_start = start + int(random.randrange(int(0.40*region_length), int(0.45*region_length)))
-
-        # jump backward end
-        jump_end = jump_start + random.randint(region_min_length, region_max_length) - 1
-
-        cnv_list.append([jump_start, jump_end, mask[i]])
-        start = end
-        end += region_length
-
-    return cnv_list
-
-
-def _simulateCNV(genome, cnv_list, read_length):
+def _simulateCNV(genome, cnv_list, read_length, control_file, cnv_file):
     '''
     Simulate the control genome and the CNV genome
     :param genome: original genome sequence
     :param cnv_list: a list of region variations (chromosome, start, end, variation)
     :return: control_genome, cnv_genome
     '''
-    control_genome = []
-    cnv_genome = []
+    with open(control_file, 'w') as control_handle:
+        with open(cnv_file, 'w') as cnv_handle:
+            for cnv in cnv_list:
+                header = f">{cnv.chromosome}:{cnv.region_start}:{cnv.region_end}:{cnv.variation}"
+                curr_chrom = genome[cnv.chromosome]
+                sequence = curr_chrom[cnv.region_start:cnv.region_end]
+                prefix = curr_chrom[cnv.region_start-read_length: cnv.region_start]
+                suffix = curr_chrom[cnv.region_end:cnv.region_end+read_length]
 
-    for cnv in cnv_list:
-        start = cnv[1]
-        end = cnv[2]
-        variation = cnv[3]
-        sequence = genome[start: end]
-
-        if variation > 0:
-            # amplification
-            amplification = genome[start-read_length: start] + sequence * variation + genome[end:end+read_length]
-            cnv_genome.append(amplification)
-        elif variation < 0:
-            # deletion
-            deletion = genome[start-read_length: start] + sequence * abs(variation) + genome[end:end+read_length]
-            control_genome.append(deletion)
-
-    return ''.join(control_genome), ''.join(cnv_genome)
-
+                if cnv.variation > 0:
+                    # amplification
+                    amplification = prefix + sequence * cnv.variation + suffix
+                    cnv_handle.write(header + "\n")
+                    cnv_handle.write(amplification + "\n")
+                elif cnv.variation < 0:
+                    # deletion
+                    deletion = prefix + sequence * abs(cnv.variation) + suffix
+                    control_handle.write(header + "\n")
+                    control_handle.write(deletion + "\n")
 
 def _callART(genome_file, output_file, read_length, fold_coverage=1):
     '''
@@ -123,26 +92,30 @@ def _callART(genome_file, output_file, read_length, fold_coverage=1):
     :return: None
     '''
     art_path = os.path.join(getScriptPath(), "ART", 'art_illumina')
-    subprocess.call([art_path, \
-                     "-na", \
-                     "-i", genome_file, \
-                     "-p", \
-                     "-m", "200", \
-                     "-s", "10", \
-                     "-l", str(read_length), \
-                     "-f", str(fold_coverage), \
-                     "-o", output_file], stderr=None)
+
+    cmd = f"""{art_path} \
+                -na \
+                -i {genome_file} \
+                -p \
+                -m 200 \
+                -s 10 \
+                -l {read_length} \
+                -f {fold_coverage} \
+                -o {output_file}"""
+    logger.debug(cmd)
+
+    subprocess.call(shlex.split(cmd), stderr=None)
     os.chdir("..")
 
 
-def simulate_genome_cnv(simulation_parameters, cnv_list_parameters=None):
+def simulate_genome_cnv(simulation_parameters):
     '''
     Simulate copy number variations on the passed reference genome based on the given simulation parameters
     :param simulation_parameters: a dictionary containing parameters for simulation
     :param cnv_list_parameters: a dictionary containing parameters for CNV List creation
     :return: None
     '''
-    _log('simulation type: whole genome sequencing')
+    logger.info('simulation type: whole genome sequencing')
 
     # create a temporary directory for intermediate files
     if not os.path.exists(simulation_parameters['tmp_dir']):
@@ -152,9 +125,7 @@ def simulate_genome_cnv(simulation_parameters, cnv_list_parameters=None):
     if not os.path.exists(simulation_parameters['output_dir']):
         os.makedirs(simulation_parameters['output_dir'])
 
-    # copy genome to the tmp folder
-    shutil.copyfile(simulation_parameters['genome_file'], os.path.join(simulation_parameters['tmp_dir'], "reference.fa"))
-    genome_file = os.path.join(simulation_parameters['tmp_dir'], "reference.fa")
+    genome_file = simulation_parameters['genome_file']
 
     # initialize variables for temporary files
     control_genome_file = os.path.join(simulation_parameters['tmp_dir'], "ControlGenome.fa")
@@ -163,83 +134,42 @@ def simulate_genome_cnv(simulation_parameters, cnv_list_parameters=None):
     control_reads_file = os.path.join(simulation_parameters['tmp_dir'], "control")
     cnv_reads_file = os.path.join(simulation_parameters['tmp_dir'], "cnv")
 
-    _log("loading genome file ..")
-    header, genome = fileio.readGenome(genome_file)
-    _log("successfully loaded a genome of length " + `len(genome)`)
+    logger.info("loading genome file ..")
+    genome = SeqIO.index(genome_file, "fasta")
+    logger.info(f"successfully loaded a genome with {len(genome)} chromosomes")
 
-    if simulation_parameters['cnv_list_file'] is None:
-        # CNV list file
-        cnv_list_file = os.path.join(simulation_parameters['output_dir'], "copynumber.bed")
+    logger.info("loading CNV list ..")
+    CNV = namedtuple("chromosome", "region_start", "region_end", "num_positions", "variation")
 
-        _log("generating CNV list ..")
-        cnv_list = _generateCNVList(len(genome), cnv_list_parameters['regions_count'], \
-                                    cnv_list_parameters['amplifications'], cnv_list_parameters['deletions'], \
-                                    cnv_list_parameters['minimum_variations'], \
-                                    cnv_list_parameters['maximum_variations'], \
-                                    cnv_list_parameters['minimum_length'], \
-                                    cnv_list_parameters['maximum_length'])
-        cnv_list = map(lambda l: [header.replace('>', '')] + l, cnv_list)
+    with open(simulation_parameters['cnv_list_file'], "r") as f:
+        cnv_list = []
+        lines = f.readlines()
+        lines.pop(0)
+        for line in lines:
+            chromosome, region_start, region_end, num_positions, variation = line.strip().split("\t")
+            cnv = CNV(chromosome, int(region_start), int(region_end), int(num_positions), int(variation))
+            cnv_list.append(cnv)
 
-        with open(cnv_list_file, 'w') as f:
-            line = '# chr\tchr_start\tchr_stop\tnum_positions\tcopy_number\n'
-            f.write(line)
-            for i, cnv_region in enumerate(cnv_list):
-                num_positions = cnv_region[2] - cnv_region[1] + 1
-                line = cnv_region[0] + '\t' \
-                       + `cnv_region[1]` + '\t' \
-                       + `cnv_region[2]` + '\t' \
-                       + `num_positions` + '\t' \
-                       + `cnv_region[3]` + '\n'
-                f.write(line)
-        _log("randomly generated CNV list saved to " + cnv_list_file)
-
-    else:
-        _log("loading CNV list ..")
-        with open(simulation_parameters['cnv_list_file'], "r") as f:
-            cnv_list = []
-            lines = f.readlines()
-            lines.pop(0)
-            for line in lines:
-                chromosome, region_start, region_end, num_positions, variation = line.strip().split("\t")
-                cnv_list.append((chromosome, int(region_start), int(region_end), int(variation)))
-
-        _log("successfully loaded CNV list that contains " + `len(lines)` + " regions ..")
+        logger.info("successfully loaded CNV list that contains " + len(cnv_list) + " regions ..")
 
     # call ART to generate reads from the genome file
-    _log("generating reads for the genome ..")
-    _log("delegating job to ART ...")
+    logger.info("generating reads for the genome ..")
+    logger.info("delegating job to ART ...")
     _callART(genome_file, base_reads_file, simulation_parameters['read_length'], fold_coverage=simulation_parameters['coverage'])
 
-    _log("simulating copy number variations (amplifications/deletions)")
-    control_genome, cnv_genome = _simulateCNV(genome, cnv_list, simulation_parameters['read_length'])
+    logger.info("simulating copy number variations (amplifications/deletions)")
+    _simulateCNV(genome, cnv_list, simulation_parameters['read_length'], control_genome_file, cnv_genome_file)
 
-    _log("saving to the control genome file ..")
-
-    with open(control_genome_file, 'w') as fw:
-        fw.write(header + "\n")
-        n = 50
-        l = [control_genome[i:i + n] for i in range(0, len(control_genome), n)]
-        for line in l:
-            fw.write(line + "\n")
-
-    _log("delegating job to ART ...")
+    logger.info("delegating job to ART ...")
     _callART(control_genome_file, control_reads_file, simulation_parameters['read_length'], fold_coverage=simulation_parameters['coverage'])
 
-    _log("saving to the CNV genome file ..")
-    with open(cnv_genome_file, 'w') as fw:
-        fw.write(header + "\n")
-        n = 50
-        l = [cnv_genome[i:i + n] for i in range(0, len(cnv_genome), n)]
-        for line in l:
-            fw.write(line + "\n")
-
-    _log("delegating job to ART ...")
+    logger.info("delegating job to ART ...")
     _callART(cnv_genome_file, cnv_reads_file, simulation_parameters['read_length'], fold_coverage=simulation_parameters['coverage'])
 
-    _log("merging results ..")
+    logger.info("merging results ..")
     fileio.mergeARTReads(simulation_parameters['tmp_dir'], simulation_parameters['output_dir'])
 
-    _log("cleaning temporary files ..")
+    logger.info("cleaning temporary files ..")
     fileio.clean(simulation_parameters['tmp_dir'])
 
-    _log("simulation completed. find results in " + simulation_parameters['output_dir'])
+    logger.info("simulation completed. find results in " + simulation_parameters['output_dir'])
