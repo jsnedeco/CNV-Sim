@@ -6,6 +6,7 @@ import os.path
 import datetime
 import argparse
 import shutil
+from patlib import Path
 
 from cnvsim.fileio import *
 from cnvsim.genome_simulator import *
@@ -27,9 +28,9 @@ def main():
     parser._optionals.title = 'Optional arguments'
     parser.add_argument('-v', '--version', action='version', version = 'CNV-Sim v0.9.2', help = "Show program's version number and exit.")
 
-    parser.add_argument("genome", type=file, \
+    parser.add_argument("genome", type=Path, \
                         help="path to the referece genome file in FASTA format ")
-    parser.add_argument("target", type=file, nargs='?', default=None, \
+    parser.add_argument("target", type=Path, nargs='?', default=None, \
                         help="path to the target regions file in BED format (if using exome)")
 
     parser.add_argument("-o", "--output_dir_name",type=str, default="simulation_output", \
