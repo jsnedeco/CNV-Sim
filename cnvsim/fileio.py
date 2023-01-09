@@ -10,7 +10,6 @@ import gzip
 
 logger = logging.getLogger(__name__)
 
-
 def readTargets(filename):
     '''
     Read target file in BED format

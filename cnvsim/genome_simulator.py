@@ -13,8 +13,6 @@ from . import fileio
 import logging
 logger = logging.getLogger(__name__)
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
-
 def getScriptPath():
     return os.path.dirname(os.path.realpath(__file__))
 

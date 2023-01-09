@@ -8,20 +8,17 @@ import argparse
 import shutil
 
 from cnvsim.fileio import *
-from cnvsim.exome_simulator import *
 from cnvsim.genome_simulator import *
 
+logger = logging.getLogger(__name__)
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 
 class CapitalisedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
     def add_usage(self, usage, actions, groups, prefix=None):
         if prefix is None:
             prefix = 'Usage: '
             return super(CapitalisedHelpFormatter, self).add_usage(usage, actions, groups, prefix)
-
-
-def log(message):
-    print '[CNV SIM {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()) + "] " + message
-
 
 def main():
     parser = argparse.ArgumentParser(add_help=True, formatter_class=CapitalisedHelpFormatter, \
@@ -30,8 +27,6 @@ def main():
     parser._optionals.title = 'Optional arguments'
     parser.add_argument('-v', '--version', action='version', version = 'CNV-Sim v0.9.2', help = "Show program's version number and exit.")
 
-    parser.add_argument("simulation_type", type=str, choices=['genome', 'exome'], \
-                        help="simulate copy number variations in whole genome or exome regions")
     parser.add_argument("genome", type=file, \
                         help="path to the referece genome file in FASTA format ")
     parser.add_argument("target", type=file, nargs='?', default=None, \
@@ -43,26 +38,10 @@ def main():
                         help="total number of reads without variations")
     parser.add_argument("-l", "--read_length", type=int, default=100, \
                         help="read length (bp)")
-    parser.add_argument("--cnv_list", type=file, default=None, \
-                        help="path to a CNV list file in BED format chr | start | end | variation. If not passed, it is randomly generated using CNV list parameters below")
+    parser.add_argument("--cnv_list", type=file, required=True, \
+                        help="path to a CNV list file in BED format chr | start | end | variation.")
     parser.add_argument("--coverage", type=int, default=1, \
                         help="the integer average depth of coverage of a genome for the reads (only on whole genome simulation)")
-
-    cnv_sim_group = parser.add_argument_group('CNV list parameters', "parameters to be used if CNV list is not passed")
-    cnv_sim_group.add_argument("-g", "--regions_count", type=int, default=20, \
-                        help="number of CNV regions to be generated randomly")
-    cnv_sim_group.add_argument("-r_min", "--region_minimum_length", type=int, default=1000, \
-                               help="minimum length of each CNV region")
-    cnv_sim_group.add_argument("-r_max", "--region_maximum_length", type=int, default=100000, \
-                               help="maximum length of each CNV region")
-    cnv_sim_group.add_argument("-a", "--amplifications", type=float, default=0.50, \
-                        help="percentage of amplifications in range [0.0: 1.0].")
-    cnv_sim_group.add_argument("-d", "--deletions", type=float, default=0.50, \
-                        help="percentage of deletions in range [0.0: 1.0].")
-    cnv_sim_group.add_argument("-cn_min", "--copy_number_minimum", type=float, default=3, \
-                        help="minimum level of variations (copy number) introduced")
-    cnv_sim_group.add_argument("-cn_max", "--copy_number_maximum", type=float, default=10, \
-                        help="maximum level of variation (copy number) introduced")
 
     args = parser.parse_args()
 
@@ -83,23 +62,8 @@ def main():
     simulation_parameters['tmp_dir'] = os.path.join(os.getcwd(), args.output_dir_name , "tmp")
     simulation_parameters['coverage'] = args.coverage
 
-    cnv_list_parameters = {}
-    cnv_list_parameters['regions_count'] = args.regions_count
-    cnv_list_parameters['minimum_length'] = args.region_minimum_length
-    cnv_list_parameters['maximum_length'] = args.region_maximum_length
-    cnv_list_parameters['amplifications'] = args.amplifications
-    cnv_list_parameters['deletions'] = args.deletions
-    cnv_list_parameters['minimum_variations'] = args.copy_number_minimum
-    cnv_list_parameters['maximum_variations'] = args.copy_number_maximum
+    simulate_genome_cnv(simulation_parameters)
 
-    if cnv_list_parameters['amplifications'] + cnv_list_parameters['deletions'] != 1.0:
-        log("ERROR: percentage of amplifications + percentage of deletions must be equal to 1.0")
-        exit()
-
-    if simulation_parameters['type'] == 'genome':
-        simulate_genome_cnv(simulation_parameters, cnv_list_parameters)
-    else:
-        simulate_exome_cnv(simulation_parameters, cnv_list_parameters)
 
 
 if __name__ == '__main__':
