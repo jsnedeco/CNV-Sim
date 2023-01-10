@@ -62,13 +62,17 @@ def _simulateCNV(genome_file, cnv_list, read_length, control_file, cnv_file):
     '''
 
     logger.info("loading genome file ..")
-    genome = SeqIO.index(genome_file, "fasta")
+    genome = SeqIO.index(str(genome_file), "fasta")
     logger.info(f"successfully loaded a genome with {len(genome)} chromosomes")
+    curr_chrom_name = ""
+    curr_chrom = ""
     with open(control_file, 'w') as control_handle:
         with open(cnv_file, 'w') as cnv_handle:
             for cnv in cnv_list:
                 header = f">{cnv.chromosome}:{cnv.region_start}:{cnv.region_end}:{cnv.variation}"
-                curr_chrom = genome[cnv.chromosome]
+                if curr_chrom_name != cnv.chromosome:
+                    curr_chrom = genome[cnv.chromosome]
+                    curr_chrom_name = cnv.chromosome
                 sequence = curr_chrom[cnv.region_start:cnv.region_end].seq
                 prefix = curr_chrom[cnv.region_start-read_length: cnv.region_start].seq
                 suffix = curr_chrom[cnv.region_end:cnv.region_end+read_length].seq
@@ -77,12 +81,12 @@ def _simulateCNV(genome_file, cnv_list, read_length, control_file, cnv_file):
                     # amplification
                     amplification = prefix + sequence * cnv.variation + suffix
                     cnv_handle.write(header + "\n")
-                    cnv_handle.write(amplification + "\n")
+                    cnv_handle.write(str(amplification) + "\n")
                 elif cnv.variation < 0:
                     # deletion
                     deletion = prefix + sequence * abs(cnv.variation) + suffix
                     control_handle.write(header + "\n")
-                    control_handle.write(deletion + "\n")
+                    control_handle.write(str(deletion) + "\n")
 
 def _callART(genome_file, output_file, read_length, fold_coverage=1):
     '''
@@ -107,8 +111,6 @@ def _callART(genome_file, output_file, read_length, fold_coverage=1):
     logger.debug(cmd)
 
     subprocess.call(shlex.split(cmd), stderr=None)
-    os.chdir("..")
-
 
 def simulate_genome_cnv(simulation_parameters):
     '''
