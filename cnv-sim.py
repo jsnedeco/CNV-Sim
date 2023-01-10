@@ -39,6 +39,8 @@ def main():
                         help="read length (bp)")
     parser.add_argument("--cnv_list", type=Path, required=True, \
                         help="path to a CNV list file in BED format chr | start | end | variation.")
+    parser.add_argument("--coverage", type=int, default=1, \
+                        help="the integer average depth of coverage of a genome for the reads (only on whole genome simulation)")
 
     args = parser.parse_args()
 
@@ -52,6 +54,7 @@ def main():
     else:
         simulation_parameters['cnv_list_file'] = None
     simulation_parameters['tmp_dir'] = os.path.join(args.output_dir_name , "tmp")
+    simulation_parameters['coverage'] = args.coverage
 
     simulate_genome_cnv(simulation_parameters)
 
