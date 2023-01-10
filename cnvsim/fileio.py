@@ -53,19 +53,19 @@ def mergeWessimReads(tmp_dir, output_dir):
     cnv_file_1 = os.path.join(tmp_dir, "cnv_1.fastq")
     cnv_file_2 = os.path.join(tmp_dir, "cnv_2.fastq")
 
-    cmd1 = f"cat {base_file_1} {normal_file_1} | gzip > '{output_dir}/control_1.fastq.gz'"
+    cmd1 = f"cat {base_file_1} {normal_file_1} | gzip > {output_dir}/control_1.fastq.gz"
     logger.debug(cmd1)
     subprocess.check_call(shlex.split(cmd1), shell=True)
 
-    cmd2 = f"cat {base_file_2} {normal_file_2} | gzip > '{output_dir}/control_2.fastq.gz'"
+    cmd2 = f"cat {base_file_2} {normal_file_2} | gzip > {output_dir}/control_2.fastq.gz"
     logger.debug(cmd2)
     subprocess.check_call(shlex.split(cmd2), shell=True)
 
-    cmd3 = f"cat {base_file_1} {cnv_file_1} | gzip > '{output_dir}/cnv_1.fastq.fastq.gz'"
+    cmd3 = f"cat {base_file_1} {cnv_file_1} | gzip > {output_dir}/cnv_1.fastq.fastq.gz"
     logger.debug(cmd3)
     subprocess.check_call(shlex.split(cmd3), shell=True)
 
-    cmd4 = f"cat {base_file_2} {cnv_file_2} | gzip > '{output_dir}/cnv_2.fastq.fastq.gz'"
+    cmd4 = f"cat {base_file_2} {cnv_file_2} | gzip > {output_dir}/cnv_2.fastq.fastq.gz"
     logger.debug(cmd4)
     subprocess.check_call(shlex.split(cmd4), shell=True)
 
@@ -81,19 +81,19 @@ def mergeARTReads(tmp_dir, output_dir):
     cnv_file_1 = os.path.join(tmp_dir, "cnv1.fq")
     cnv_file_2 = os.path.join(tmp_dir, "cnv2.fq")
 
-    cmd1 = f"cat {base_file_1} {normal_file_1} | gzip > '{output_dir}/control_1.fastq.gz'"
+    cmd1 = f"cat {base_file_1} {normal_file_1} | gzip > {output_dir}/control_1.fastq.gz"
     logger.debug(cmd1)
     subprocess.check_call(shlex.split(cmd1), shell=True)
 
-    cmd2 = f"cat {base_file_2} {normal_file_2} | gzip > '{output_dir}/control_2.fastq.gz'"
+    cmd2 = f"cat {base_file_2} {normal_file_2} | gzip > {output_dir}/control_2.fastq.gz"
     logger.debug(cmd2)
     subprocess.check_call(shlex.split(cmd2), shell=True)
 
-    cmd3 = f"cat {base_file_1} {cnv_file_1} | gzip > '{output_dir}/cnv_1.fastq.fastq.gz'"
+    cmd3 = f"cat {base_file_1} {cnv_file_1} | gzip > {output_dir}/cnv_1.fastq.fastq.gz"
     logger.debug(cmd3)
     subprocess.check_call(shlex.split(cmd3), shell=True)
 
-    cmd4 = f"cat {base_file_2} {cnv_file_2} | gzip > '{output_dir}/cnv_2.fastq.fastq.gz'"
+    cmd4 = f"cat {base_file_2} {cnv_file_2} | gzip > {output_dir}/cnv_2.fastq.fastq.gz"
     logger.debug(cmd4)
     subprocess.check_call(shlex.split(cmd4), shell=True)
 
