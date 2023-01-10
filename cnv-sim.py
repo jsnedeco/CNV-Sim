@@ -28,10 +28,8 @@ def main():
     parser._optionals.title = 'Optional arguments'
     parser.add_argument('-v', '--version', action='version', version = 'CNV-Sim v0.9.2', help = "Show program's version number and exit.")
 
-    parser.add_argument("genome", type=Path, \
+    parser.add_argument("-g", "--genome", type=Path, required=True,
                         help="path to the referece genome file in FASTA format ")
-    parser.add_argument("target", type=Path, nargs='?', default=None, \
-                        help="path to the target regions file in BED format (if using exome)")
 
     parser.add_argument("-o", "--output_dir_name",type=str, default="simulation_output", \
                         help="a name to be used to create the output directory (overrides existing directory with the same name).")
@@ -41,27 +39,19 @@ def main():
                         help="read length (bp)")
     parser.add_argument("--cnv_list", type=Path, required=True, \
                         help="path to a CNV list file in BED format chr | start | end | variation.")
-    parser.add_argument("--coverage", type=int, default=1, \
-                        help="the integer average depth of coverage of a genome for the reads (only on whole genome simulation)")
 
     args = parser.parse_args()
 
     simulation_parameters = {}
-    simulation_parameters['type'] = args.simulation_type
-    simulation_parameters['genome_file'] = args.genome.name
-    if args.target is not None:
-        simulation_parameters['target_file'] = args.target.name
-    else:
-        simulation_parameters['target_file'] = None
+    simulation_parameters['genome_file'] = args.genome
     simulation_parameters['output_dir'] = os.path.join(os.getcwd(), args.output_dir_name)
     simulation_parameters['number_of_reads'] = args.n_reads
     simulation_parameters['read_length'] = args.read_length
     if args.cnv_list is not None:
-        simulation_parameters['cnv_list_file'] = args.cnv_list.name
+        simulation_parameters['cnv_list_file'] = args.cnv_list
     else:
         simulation_parameters['cnv_list_file'] = None
-    simulation_parameters['tmp_dir'] = os.path.join(os.getcwd(), args.output_dir_name , "tmp")
-    simulation_parameters['coverage'] = args.coverage
+    simulation_parameters['tmp_dir'] = os.path.join(args.output_dir_name , "tmp")
 
     simulate_genome_cnv(simulation_parameters)
 
