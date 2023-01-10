@@ -39,7 +39,7 @@ def main():
                         help="read length (bp)")
     parser.add_argument("--cnv_list", type=Path, required=True, \
                         help="path to a CNV list file in BED format chr | start | end | variation.")
-    parser.add_argument("--coverage", type=int, default=1, \
+    parser.add_argument("--coverage", type=float, default=1, \
                         help="the integer average depth of coverage of a genome for the reads (only on whole genome simulation)")
 
     args = parser.parse_args()
