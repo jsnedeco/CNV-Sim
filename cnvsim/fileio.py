@@ -98,4 +98,4 @@ def mergeARTReads(tmp_dir, output_dir):
     subprocess.check_call(shlex.split(cmd4), shell=True)
 
 def clean(tmp_dir):
-    subprocess.call(["rm", "-rf", tmp_dir, "/*.fq"])
+    subprocess.call(["rm", "-rf", tmp_dir + "/*.fq"])
