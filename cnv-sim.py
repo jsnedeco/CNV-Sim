@@ -53,7 +53,7 @@ def main():
         simulation_parameters['cnv_list_file'] = args.cnv_list
     else:
         simulation_parameters['cnv_list_file'] = None
-    simulation_parameters['tmp_dir'] = os.path.join(args.output_dir_name, "tmp")
+    simulation_parameters['tmp_dir'] = os.path.join(simulation_parameters['output_dir'], "tmp")
     simulation_parameters['coverage'] = args.coverage
 
     simulate_genome_cnv(simulation_parameters)
